@@ -78,6 +78,7 @@ void init (int argc, char *argv[])
 	default_battery();
 #endif
 	default_clock();
+	default_graphs();
 	default_launcher();
 	default_taskbar();
 	default_tooltip();
@@ -238,6 +239,7 @@ void cleanup()
 	cleanup_systray();
 	cleanup_tooltip();
 	cleanup_clock();
+	cleanup_graphs();
 	cleanup_launcher();
 #ifdef ENABLE_BATTERY
 	cleanup_battery();
@@ -503,6 +505,14 @@ void event_button_release (XEvent *e)
 		case 7:
 			action = mouse_tilt_right;
 			break;
+	}
+
+	if ( click_graphs(panel, e->xbutton.x, e->xbutton.y)) {
+		graphs_action(e->xbutton.button);
+		if (panel_layer == BOTTOM_LAYER)
+			XLowerWindow (server.dsp, panel->main_win);
+		task_drag = 0;
+		return;
 	}
 
 	if ( click_clock(panel, e->xbutton.x, e->xbutton.y)) {
