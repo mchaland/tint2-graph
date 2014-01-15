@@ -44,6 +44,7 @@
 #include "systraybar.h"
 #include "launcher.h"
 #include "clock.h"
+#include "graphs.h"
 #include "config.h"
 #include "window.h"
 #include "tooltip.h"
@@ -127,7 +128,7 @@ int config_get_monitor(char* monitor)
 			// monitor specified by name, not by index
 			int i, j;
 			for (i=0; i<server.nb_monitor; ++i) {
-				if (server.monitor[i].names == 0) 
+				if (server.monitor[i].names == 0)
 					// xrandr can't identify monitors
 					continue;
 				j = 0;
@@ -220,6 +221,8 @@ void add_entry (char *key, char *value)
 			}
 			if (panel_items_order[j] == 'C')
 				clock_enabled = 1;
+			if (panel_items_order[j] == 'G')
+				graphs_enabled = 1;
 		}
 	}
 	else if (strcmp (key, "panel_margin") == 0) {
@@ -341,7 +344,7 @@ void add_entry (char *key, char *value)
 				g_free( panel_items_order );
 				panel_items_order = tmp;
 			}
-			else 
+			else
 				panel_items_order = g_strdup("C");
 		}
 		if (strlen(value) > 0) {
@@ -399,6 +402,70 @@ void add_entry (char *key, char *value)
 	else if (strcmp(key, "clock_rclick_command") == 0) {
 		if (strlen(value) > 0)
 			clock_rclick_command = strdup(value);
+	}
+
+	/* Graphs */
+	else if (strcmp(key, "graphs_items") == 0) {
+		int j;
+		for (j = 0; j < strlen(value); j++) {
+			if (value[j] == 'C' && graphs_cpu_pos == -1) {
+				graphs_cpu_pos = graphs_ncurves;
+				graphs_curves_per_pos[graphs_ngraphs] = 2;
+				graphs_ngraphs++;
+				graphs_ncurves+=2;
+			}
+			else if (value[j] == 'M' && graphs_mem_pos == -1) {
+				graphs_mem_pos = graphs_ncurves;
+				graphs_curves_per_pos[graphs_ngraphs] = 2;
+				graphs_ngraphs++;
+				graphs_ncurves+=2;
+			}
+			else if (value[j] == 'N' && graphs_net_pos == -1) {
+				graphs_net_pos = graphs_ncurves;
+				graphs_curves_per_pos[graphs_ngraphs] = 2;
+				graphs_ngraphs++;
+				graphs_ncurves+=2;
+			}
+		}
+	}
+	else if (strcmp(key, "graphs_use_bars") == 0) {
+		graphs_use_bars = atoi(value);
+	}
+	else if (strcmp(key, "graphs_graph_width") == 0) {
+		int w = atoi(value);
+		graphs_graph_width = (w <= 200 && w >= 10) ? w : 50;
+	}
+	else if (strcmp(key, "graphs_netiface") == 0) {
+		if (strlen(value) > 0)
+			graphs_netiface = strdup(value);
+	}
+	else if (strncmp (key, "graphs_color", 12) == 0) {
+		int idx = key[12]-48;
+		if (idx >= 0 && idx < MAXCURVES) {
+			extract_values(value, &value1, &value2, &value3);
+			get_color (value1, panel_config.graphs.g[idx].color);
+			if (value2) panel_config.graphs.g[idx].alpha = (atoi (value2) / 100.0);
+			else panel_config.graphs.g[idx].alpha = 0.5;
+		}
+	}
+	else if (strcmp (key, "graphs_padding") == 0) {
+		extract_values(value, &value1, &value2, &value3);
+		panel_config.graphs.area.paddingxlr = panel_config.graphs.area.paddingx = atoi (value1);
+		if (value2) panel_config.graphs.area.paddingy = atoi (value2);
+		if (value3) panel_config.graphs.area.paddingx = atoi (value3);
+	}
+	else if (strcmp (key, "graphs_background_id") == 0) {
+		int id = atoi (value);
+		id = (id < backgrounds->len && id >= 0) ? id : 0;
+		panel_config.graphs.area.bg = &g_array_index(backgrounds, Background, id);
+	}
+	else if (strcmp(key, "graphs_lclick_command") == 0) {
+		if (strlen(value) > 0)
+			graphs_lclick_command = strdup(value);
+	}
+	else if (strcmp(key, "graphs_rclick_command") == 0) {
+		if (strlen(value) > 0)
+			graphs_rclick_command = strdup(value);
 	}
 
 	/* Taskbar */
@@ -761,7 +828,7 @@ int config_read_file (const char *path)
 		}
 	}
 	fclose (fp);
-	
+
 	// append Taskbar item
 	if (new_config_file == 0) {
 		taskbar_enabled = 1;
@@ -770,7 +837,7 @@ int config_read_file (const char *path)
 			g_free(panel_items_order);
 			panel_items_order = tmp;
 		}
-		else 
+		else
 			panel_items_order = g_strdup("T");
 	}
 

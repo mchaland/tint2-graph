@@ -141,6 +141,7 @@ void init_panel()
 	init_systray();
 	init_launcher();
 	init_clock();
+	init_graphs();
 #ifdef ENABLE_BATTERY
 	init_battery();
 #endif
@@ -178,6 +179,8 @@ void init_panel()
 				init_launcher_panel(p);
 			if (panel_items_order[k] == 'T')
 				init_taskbar_panel(p);
+			if (panel_items_order[k] == 'G')
+				init_graphs_panel(p);
 #ifdef ENABLE_BATTERY
 			if (panel_items_order[k] == 'B')
 				init_battery_panel(p);
@@ -398,6 +401,8 @@ void set_panel_items_order(Panel *p)
 			for (j=0 ; j < p->nb_desktop ; j++)
 				p->area.list = g_slist_append(p->area.list, &p->taskbar[j]);
 		}
+		if (panel_items_order[k] == 'G')
+			p->area.list = g_slist_append(p->area.list, &p->graphs);
 #ifdef ENABLE_BATTERY
 		if (panel_items_order[k] == 'B') 
 			p->area.list = g_slist_append(p->area.list, &p->battery);
@@ -673,6 +678,20 @@ int click_padding(Panel *panel, int x, int y)
 		return 1;
 	}
 	return 0;
+}
+
+
+int click_graphs(Panel *panel, int x, int y)
+{
+	Graphs gr = panel->graphs;
+	if (panel_horizontal) {
+		if (gr.area.on_screen && x >= gr.area.posx && x <= (gr.area.posx + gr.area.width))
+			return TRUE;
+	} else {
+		if (gr.area.on_screen && y >= gr.area.posy && y <= (gr.area.posy + gr.area.height))
+			return TRUE;
+	}
+	return FALSE;
 }
 
 
